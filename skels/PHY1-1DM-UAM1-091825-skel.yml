@@ -1,0 +1,21 @@
+bank_info:
+  title: <str>
+  bank_id: <str>
+  description: <str>
+  date_created: <str>
+  LLM: <str>
+  authors: <str>
+questions:
+- numerical:
+    id: <str>
+    title: <str>
+    points: <int>
+    text: <str>
+    answer:
+      value: <float>
+      margin_type: <str>
+      tolerance: <int>
+    feedback:
+      general: <str>
+      on_correct: <str>
+      on_incorrect: <str>

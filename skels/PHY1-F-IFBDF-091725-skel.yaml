@@ -1,0 +1,41 @@
+bank_info:
+  title: <str>
+  bank_id: <str>
+  description: <str>
+  date created: <str>
+  learning objectives: <null>
+  generational prompts:
+  - prompt 1: <str>
+  - prompt 1.1: <str>
+  - prompt 1.2: <str>
+  - prompt 1.3: <str>
+  - prompt 2: <str>
+  updates:
+  - update 1:
+    - description: <str>
+    - prompt 1: <str>
+    - prompt 2: <str>
+    - prompt 3: <str>
+    - prompt 4: <str>
+  associated data: <null>
+  generation details:
+    model: <str>
+    version: <float>
+    last updated: <str>
+  authors:
+  - <str>
+questions:
+- multiple_answers:
+    id: <str>
+    title: <str>
+    points: <int>
+    partial: <bool>
+    text: <str>
+    answers:
+    - answer:
+        text: <str>
+        correct: <bool>
+    feedback:
+      general: <str>
+      on_correct: <str>
+      on_incorrect: <str>

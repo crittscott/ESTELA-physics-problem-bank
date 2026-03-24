@@ -1,0 +1,97 @@
+# superset-skeleton.yaml
+# Union of all fields found across 31 problem bank YAML files.
+# Every field that appears in any file is represented here.
+# Type tags: <str>  <int>  <float>  <bool>  <null>
+# Comments note key-name variants and optional fields.
+
+bank_info:
+  title: <str>
+  bank_id: <str>
+  description: <str>
+  date_created: <str>           # variant: "date created" (space instead of underscore)
+  LLM: <str>                    # optional; appears in older files only
+  learning objectives:          # variant: "learning_objectives"; sometimes <null>
+  - <str>
+  generation prompts:           # variants: "generation_prompts", "generational prompts",
+  - prompt 1: <str>             #   "generational_prompts"; prompt keys vary widely:
+                                #   "prompt 1", "prompt 1.1", "prompt 2.1", "formatting prompt", etc.
+  generation prompts 2:         # optional; appears in one file only
+  - prompt 1: <str>
+  updates:                      # optional; sometimes <null>
+  - update 1:
+    - description: <str>        # variant key: "content"
+    - prompt: <str>             # variant keys: "prompt 1", "prompt 2", etc.
+  associated data:              # variant: "associated_data"; optional; sometimes <null>
+  - random number generation script: <str>   # key name varies per file, value is always <str>
+  generation details:           # variant: "generation_details"; optional
+    model: <str>
+    version: <str>              # sometimes <int> or <float>
+    last updated: <str>         # variant: "last_updated"
+    solution: <str>             # optional; appears in one file
+  authors: <str>                # also appears as a list: [<str>]
+
+questions:
+
+- numerical:
+    id: <str>
+    title: <str>
+    points: <int>
+    text: <str>
+    figure: <str>               # optional
+    answer:
+      value: <float>            # sometimes <int>
+      margin_type: <str>        # optional; most files
+      tolerance: <float>        # optional; sometimes <int>
+      precision_type: <str>     # optional; alternative to margin_type (one file)
+      precision: <int>          # optional; alternative to tolerance (one file)
+    feedback:
+      general: <str>
+      on_correct: <str>         # optional
+      on_incorrect: <str>       # optional
+
+- multiple_choice:
+    id: <str>
+    title: <str>
+    points: <int>
+    text: <str>
+    figure: <str>               # optional
+    answers:
+    - answer:
+        text: <str>
+        correct: <bool>
+    feedback:
+      general: <str>
+      on_correct: <str>         # optional
+      on_incorrect: <str>       # optional
+
+- multiple_answers:
+    id: <str>
+    title: <str>
+    points: <int>
+    partial: <bool>             # optional
+    text: <str>
+    figure: <str>               # optional
+    answers:
+    - answer:
+        text: <str>
+        correct: <bool>
+        lock: <bool>            # optional
+    feedback:
+      general: <str>
+      on_correct: <str>         # optional
+      on_incorrect: <str>       # optional
+
+- categorization:
+    id: <str>
+    title: <str>
+    points: <int>
+    text: <str>
+    categories:
+    - category:
+        description: <str>
+        answers:
+        - <str>
+    feedback:
+      general: <str>
+      on_correct: <str>         # optional
+      on_incorrect: <str>       # optional

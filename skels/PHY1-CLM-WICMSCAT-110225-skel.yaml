@@ -1,0 +1,37 @@
+bank_info:
+  title: <str>
+  bank_id: <str>
+  description: <str>
+  date created: <str>
+  learning objectives: <null>
+  generation prompts:
+  - prompt 1: <str>
+  - prompt 2: <str>
+  - prompt 2.1: <str>
+  - prompt 3: <str>
+  - prompts 3.1: <str>
+  - prompt 4: <str>
+  - prompt 5: <str>
+  - prompt 6: <str>
+  - prompt 6.1: <str>
+  - prompt 7: <str>
+  updates:
+  - update 1: <null>
+  associated data: <null>
+  generation details:
+    model: <str>
+    version: <str>
+    last updated: <str>
+  authors:
+  - <str>
+questions:
+- categorization:
+    id: <str>
+    title: <str>
+    points: <int>
+    text: <str>
+    categories:
+    - category:
+        description: <str>
+        answers:
+        - <str>

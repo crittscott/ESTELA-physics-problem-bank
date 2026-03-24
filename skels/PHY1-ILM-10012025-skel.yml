@@ -1,0 +1,34 @@
+bank_info:
+  title: <str>
+  bank_id: <str>
+  description: <str>
+  date_created: <str>
+  generation prompts:
+  - prompt 1: <str>
+  - prompt 2: <str>
+  - prompt 3: <str>
+  - prompt 4: <str>
+  - prompt 5: <str>
+  - prompt 6: <str>
+  - prompt 7: <str>
+  - formatting prompt: <str>
+  generation details:
+    model: <str>
+    version: <float>
+    last updated: <str>
+  authors:
+  - <str>
+questions:
+- numerical:
+    id: <str>
+    title: <str>
+    points: <int>
+    text: <str>
+    answer:
+      value: <float>
+      margin_type: <str>
+      tolerance: <int>
+    feedback:
+      general: <str>
+      on_correct: <str>
+      on_incorrect: <str>

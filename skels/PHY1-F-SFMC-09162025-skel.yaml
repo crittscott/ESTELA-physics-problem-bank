@@ -1,0 +1,59 @@
+bank_info:
+  title: <str>
+  bank_id: <str>
+  description: <str>
+  date created: <str>
+  learning objectives:
+  - <str>
+  generation prompts:
+  - prompt 1.1: <str>
+  - prompt 1.2: <str>
+  - prompt 2: <str>
+  - prompt 3.1: <str>
+  - prompt 3.2: <str>
+  - prompt 4.1: <str>
+  - prompt 4.2: <str>
+  - prompt 5.1: <str>
+  - prompt 5.2: <str>
+  - prompt 5.3: <str>
+  - prompt 5.4: <str>
+  - prompt 6.1: <str>
+  - prompt 6.2: <str>
+  - prompt 6.3: <str>
+  - prompt 6.4: <str>
+  - prompt 6.5: <str>
+  - prompt 7: <str>
+  - prompt 8.1: <str>
+  - prompt 8.2: <str>
+  - prompt 8.3: <str>
+  - prompt 8.4: <str>
+  - prompt 9.1: <str>
+  - prompt 9.2: <str>
+  - prompt 10.1: <str>
+  - prompt 10.2: <str>
+  - formatting prompt: <str>
+  updates:
+  - update 1: <str>
+  - update 2: <str>
+  associated data:
+  - excel file table: <null>
+  generation details:
+    model: <str>
+    version: <null>
+    last updated: <str>
+  authors:
+  - <str>
+questions:
+- multiple_choice:
+    id: <str>
+    title: <str>
+    points: <int>
+    text: <str>
+    answers:
+    - answer:
+        text: <str>
+        correct: <bool>
+    feedback:
+      general: <str>
+      on_correct: <str>
+      on_incorrect: <str>

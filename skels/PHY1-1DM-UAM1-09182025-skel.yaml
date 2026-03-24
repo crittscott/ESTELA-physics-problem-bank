@@ -1,0 +1,39 @@
+bank_info:
+  title: <str>
+  bank_id: <str>
+  description: <str>
+  date_created: <str>
+  learning objectives:
+  - <str>
+  generation prompts:
+  - prompt 1: <str>
+  - prompt 2: <str>
+  - prompt 3: <str>
+  - prompt 4: <str>
+  - prompt 5: <str>
+  - prompt 6: <str>
+  - prompt 7: <str>
+  - prompt 8: <str>
+  - prompt 9: <str>
+  - prompt 10: <str>
+  LLM: <str>
+  authors: <str>
+  updates:
+  - update 1:
+    - description: <str>
+    - prompt 1: <str>
+    - prompt 2: <str>
+questions:
+- numerical:
+    id: <str>
+    title: <str>
+    points: <int>
+    text: <str>
+    answer:
+      value: <float>
+      margin_type: <str>
+      tolerance: <int>
+    feedback:
+      general: <str>
+      on_correct: <str>
+      on_incorrect: <str>
