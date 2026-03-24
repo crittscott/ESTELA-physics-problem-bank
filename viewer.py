@@ -2,9 +2,12 @@
 viewer.py — YAML Problem Bank Viewer
 Single-file tkinter viewer for ESTELA physics problem bank YAML files.
 """
+
 import re
+import shutil
+import sys
 import tkinter as tk
-from tkinter import filedialog, font as tkfont, ttk
+from tkinter import filedialog, ttk
 from html.parser import HTMLParser
 import zipfile
 import tempfile
@@ -17,6 +20,7 @@ except ImportError:
 
 try:
     from PIL import Image, ImageTk
+
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
@@ -28,13 +32,17 @@ NONE_TAG = "<none>"
 # bank_info field-name variant maps
 # ---------------------------------------------------------------------------
 
-DATE_KEYS     = ["date_created", "date created"]
-PROMPTS_KEYS  = ["generation prompts", "generation_prompts",
-                 "generational prompts", "generational_prompts"]
+DATE_KEYS = ["date_created", "date created"]
+PROMPTS_KEYS = [
+    "generation prompts",
+    "generation_prompts",
+    "generational prompts",
+    "generational_prompts",
+]
 PROMPTS2_KEYS = ["generation prompts 2"]
-LO_KEYS       = ["learning objectives", "learning_objectives"]
-ASSOC_KEYS    = ["associated data", "associated_data"]
-DETAILS_KEYS  = ["generation details", "generation_details"]
+LO_KEYS = ["learning objectives", "learning_objectives"]
+ASSOC_KEYS = ["associated data", "associated_data"]
+DETAILS_KEYS = ["generation details", "generation_details"]
 
 
 def get_bi(bi, keys, default=None):
@@ -53,6 +61,7 @@ def sanitize(text):
 # ---------------------------------------------------------------------------
 # Content parsing
 # ---------------------------------------------------------------------------
+
 
 class TableParser(HTMLParser):
     def __init__(self):
@@ -85,17 +94,19 @@ class TableParser(HTMLParser):
             self._current_cell.append(data)
 
 
+_CONTENT_PATTERN = re.compile(
+    r"<latex>(.*?)</latex>|<table>(.*?)</table>",
+    re.DOTALL | re.IGNORECASE,
+)
+
+
 def parse_content(text):
     """Parse mixed text into ('text'|'latex'|'table', value) segments."""
     segments = []
-    pattern = re.compile(
-        r"<latex>(.*?)</latex>|<table>(.*?)</table>",
-        re.DOTALL | re.IGNORECASE,
-    )
     pos = 0
-    for m in pattern.finditer(text):
+    for m in _CONTENT_PATTERN.finditer(text):
         if m.start() > pos:
-            segments.append(("text", text[pos:m.start()]))
+            segments.append(("text", text[pos : m.start()]))
         if m.group(1) is not None:
             segments.append(("latex", m.group(1)))
         else:
@@ -112,11 +123,11 @@ def parse_content(text):
 # Collapsible section widget
 # ---------------------------------------------------------------------------
 
+
 class CollapsibleSection(tk.Frame):
     """A toggle-button + content frame, embeddable in a Text widget."""
 
-    def __init__(self, parent, label, state_dict, state_key,
-                 bg="#f8f8f8", **kwargs):
+    def __init__(self, parent, label, state_dict, state_key, bg="#f8f8f8", **kwargs):
         super().__init__(parent, bg=bg, **kwargs)
         self._state_dict = state_dict
         self._state_key = state_key
@@ -131,7 +142,8 @@ class CollapsibleSection(tk.Frame):
             bg="#e0e8f0",
             activebackground="#c8d8ec",
             font=("Helvetica", 10, "bold"),
-            padx=6, pady=2,
+            padx=6,
+            pady=2,
             cursor="hand2",
             command=self._toggle,
         )
@@ -154,11 +166,7 @@ class CollapsibleSection(tk.Frame):
         else:
             self._content.pack_forget()
 
-    def content_frame(self):
-        return self._content
-
-    def add_text_row(self, text, fg="#333333", font=("Helvetica", 10),
-                     wrap=True):
+    def add_text_row(self, text, fg="#333333", font=("Helvetica", 10), wrap=True):
         w = tk.Label(
             self._content,
             text=sanitize(text),
@@ -177,6 +185,7 @@ class CollapsibleSection(tk.Frame):
 # Main application
 # ---------------------------------------------------------------------------
 
+
 class BankViewerApp(tk.Tk):
 
     def __init__(self):
@@ -191,13 +200,17 @@ class BankViewerApp(tk.Tk):
         self._yaml_dir = None
         self._figure_cache = {}
         self._tmp_dirs = []
-        self._section_state = {}     # persists collapsed/expanded across navigation
-        self._bank_info_widgets = [] # embedded widgets in bank pane (destroyed on reload)
-        self._question_widgets = []  # embedded widgets in question pane (destroyed on navigate)
+        self._section_state = {}  # persists collapsed/expanded across navigation
+        self._bank_info_widgets = (
+            []
+        )  # embedded widgets in bank pane (destroyed on reload)
+        self._question_widgets = (
+            []
+        )  # embedded widgets in question pane (destroyed on navigate)
 
         self._build_ui()
-        self.bind("<Left>",      lambda e: self._prev_question())
-        self.bind("<Right>",     lambda e: self._next_question())
+        self.bind("<Left>", lambda e: self._prev_question())
+        self.bind("<Right>", lambda e: self._next_question())
         self.bind("<Control-o>", lambda e: self.open_file())
         self.protocol("WM_DELETE_WINDOW", self._on_close)
 
@@ -211,7 +224,9 @@ class BankViewerApp(tk.Tk):
         tk.Label(
             self,
             textvariable=self._header_var,
-            anchor="w", padx=8, pady=4,
+            anchor="w",
+            padx=8,
+            pady=4,
             relief="groove",
             bg="#dce8f5",
             font=("Helvetica", 11, "bold"),
@@ -221,42 +236,55 @@ class BankViewerApp(tk.Tk):
         toolbar = tk.Frame(self, relief="raised", bd=1, bg="#f0f0f0")
         toolbar.pack(side="top", fill="x")
 
-        tk.Button(toolbar, text="Open File", command=self.open_file,
-                  padx=6).pack(side="left", padx=4, pady=3)
+        tk.Button(toolbar, text="Open File", command=self.open_file, padx=6).pack(
+            side="left", padx=4, pady=3
+        )
         tk.Label(toolbar, bg="#f0f0f0", width=2).pack(side="left")
 
-        self._prev_btn = tk.Button(toolbar, text="◀",
-                                   command=self._prev_question, width=3)
+        self._prev_btn = tk.Button(
+            toolbar, text="◀", command=self._prev_question, width=3
+        )
         self._prev_btn.pack(side="left", padx=2, pady=3)
 
         self._nav_var = tk.StringVar(value="")
-        tk.Label(toolbar, textvariable=self._nav_var,
-                 bg="#f0f0f0", width=16).pack(side="left")
+        tk.Label(toolbar, textvariable=self._nav_var, bg="#f0f0f0", width=16).pack(
+            side="left"
+        )
 
-        self._next_btn = tk.Button(toolbar, text="▶",
-                                   command=self._next_question, width=3)
+        self._next_btn = tk.Button(
+            toolbar, text="▶", command=self._next_question, width=3
+        )
         self._next_btn.pack(side="left", padx=2, pady=3)
 
         tk.Label(toolbar, bg="#f0f0f0", width=2).pack(side="left")
         self._jump_var = tk.StringVar(value="")
         self._jump_box = ttk.Combobox(
-            toolbar, textvariable=self._jump_var,
-            state="readonly", width=40,
+            toolbar,
+            textvariable=self._jump_var,
+            state="readonly",
+            width=40,
         )
         self._jump_box.pack(side="left", padx=4, pady=3)
         self._jump_box.bind("<<ComboboxSelected>>", self._on_jump_select)
 
         # PanedWindow: bank info (top) + question (bottom)
-        paned = tk.PanedWindow(self, orient="vertical", sashrelief="raised",
-                               sashwidth=6, bg="#cccccc")
+        paned = tk.PanedWindow(
+            self, orient="vertical", sashrelief="raised", sashwidth=6, bg="#cccccc"
+        )
         paned.pack(side="top", fill="both", expand=True)
 
         # -- Bank info pane --
         bank_frame = tk.Frame(paned)
         self._bank_text = tk.Text(
-            bank_frame, wrap="word", state="disabled",
-            padx=10, pady=6, spacing1=2, spacing3=2,
-            cursor="arrow", height=10,
+            bank_frame,
+            wrap="word",
+            state="disabled",
+            padx=10,
+            pady=6,
+            spacing1=2,
+            spacing3=2,
+            cursor="arrow",
+            height=10,
         )
         bank_sb = tk.Scrollbar(bank_frame, command=self._bank_text.yview)
         self._bank_text.configure(yscrollcommand=bank_sb.set)
@@ -267,8 +295,13 @@ class BankViewerApp(tk.Tk):
         # -- Question pane --
         q_frame = tk.Frame(paned)
         self._q_text = tk.Text(
-            q_frame, wrap="word", state="disabled",
-            padx=12, pady=8, spacing1=2, spacing3=2,
+            q_frame,
+            wrap="word",
+            state="disabled",
+            padx=12,
+            pady=8,
+            spacing1=2,
+            spacing3=2,
             cursor="arrow",
         )
         q_sb = tk.Scrollbar(q_frame, command=self._q_text.yview)
@@ -284,27 +317,42 @@ class BankViewerApp(tk.Tk):
 
     def _configure_tags(self, tw):
         S = 11
-        tw.tag_configure("title",      font=("Helvetica", S+2, "bold"))
-        tw.tag_configure("type_badge", font=("Helvetica", S-1), foreground="#555555")
-        tw.tag_configure("meta",       font=("Helvetica", S-1), foreground="#777777")
-        tw.tag_configure("label",      font=("Helvetica", S, "bold"))
-        tw.tag_configure("body",       font=("Helvetica", S))
-        tw.tag_configure("none_val",   font=("Helvetica", S), foreground="#aaaaaa")
-        tw.tag_configure("latex",      font=("Courier", S),
-                         background="#f5f5dc", relief="flat")
-        tw.tag_configure("answer_val", font=("Helvetica", S, "bold"),
-                         foreground="#1a6e1a")
+        tw.tag_configure("title", font=("Helvetica", S + 2, "bold"))
+        tw.tag_configure("type_badge", font=("Helvetica", S - 1), foreground="#555555")
+        tw.tag_configure("meta", font=("Helvetica", S - 1), foreground="#777777")
+        tw.tag_configure("label", font=("Helvetica", S, "bold"))
+        tw.tag_configure("body", font=("Helvetica", S))
+        tw.tag_configure("none_val", font=("Helvetica", S), foreground="#aaaaaa")
+        tw.tag_configure(
+            "latex", font=("Courier", S), background="#f5f5dc", relief="flat"
+        )
+        tw.tag_configure(
+            "answer_val", font=("Helvetica", S, "bold"), foreground="#1a6e1a"
+        )
         tw.tag_configure("answer_tol", font=("Helvetica", S), foreground="#555555")
-        tw.tag_configure("correct",    font=("Helvetica", S, "bold"),
-                         foreground="#1a6e1a")
-        tw.tag_configure("incorrect",  font=("Helvetica", S), foreground="#444444")
-        tw.tag_configure("section",    font=("Helvetica", S, "bold"),
-                         foreground="#333399")
-        tw.tag_configure("divider",    font=("Helvetica", 4))
-        tw.tag_configure("placeholder",font=("Helvetica", 12), foreground="#aaaaaa")
-        tw.tag_configure("bi_label",   font=("Helvetica", S-1, "bold"),
-                         foreground="#444455")
-        tw.tag_configure("bi_val",     font=("Helvetica", S-1), foreground="#222222")
+        tw.tag_configure("correct", font=("Helvetica", S, "bold"), foreground="#1a6e1a")
+        tw.tag_configure("incorrect", font=("Helvetica", S), foreground="#444444")
+        tw.tag_configure("section", font=("Helvetica", S, "bold"), foreground="#333399")
+        tw.tag_configure("divider", font=("Helvetica", 4))
+        tw.tag_configure("placeholder", font=("Helvetica", 12), foreground="#aaaaaa")
+        tw.tag_configure(
+            "bi_label", font=("Helvetica", S - 1, "bold"), foreground="#444455"
+        )
+        tw.tag_configure("bi_val", font=("Helvetica", S - 1), foreground="#222222")
+
+    # ------------------------------------------------------------------
+    # Widget lifecycle helpers
+    # ------------------------------------------------------------------
+
+    def _destroy_widgets(self, *lists):
+        """Destroy all embedded widgets in the given lists and clear them."""
+        for lst in lists:
+            for w in lst:
+                try:
+                    w.destroy()
+                except Exception:
+                    pass
+            lst.clear()
 
     # ------------------------------------------------------------------
     # File loading
@@ -329,14 +377,7 @@ class BankViewerApp(tk.Tk):
             self._show_placeholder(f"Failed to load file:\n{exc}")
             return
 
-        # Destroy all previously embedded widgets
-        for w in self._bank_info_widgets + self._question_widgets:
-            try:
-                w.destroy()
-            except Exception:
-                pass
-        self._bank_info_widgets = []
-        self._question_widgets = []
+        self._destroy_widgets(self._bank_info_widgets, self._question_widgets)
 
         self._yaml_dir = os.path.dirname(path)
         self._bank_info = data.get("bank_info", {})
@@ -350,9 +391,9 @@ class BankViewerApp(tk.Tk):
                         self._questions.append({"_type": qtype, **qdata})
 
         # Header bar
-        title   = self._bank_info.get("title", "")
+        title = self._bank_info.get("title", "")
         bank_id = self._bank_info.get("bank_id", "")
-        raw_au  = self._bank_info.get("authors", "")
+        raw_au = self._bank_info.get("authors", "")
         if isinstance(raw_au, list):
             authors = ", ".join(str(a) for a in raw_au)
         else:
@@ -382,7 +423,9 @@ class BankViewerApp(tk.Tk):
         else:
             self._q_text.config(state="normal")
             self._q_text.delete("1.0", "end")
-            self._q_text.insert("end", "No questions found in this file.\n", "placeholder")
+            self._q_text.insert(
+                "end", "No questions found in this file.\n", "placeholder"
+            )
             self._q_text.config(state="disabled")
 
     # ------------------------------------------------------------------
@@ -410,7 +453,8 @@ class BankViewerApp(tk.Tk):
         self._nav_var.set(f"Question {self._current_index+1} of {n}" if n else "")
         self._prev_btn.config(state="normal" if self._current_index > 0 else "disabled")
         self._next_btn.config(
-            state="normal" if self._current_index < n-1 else "disabled")
+            state="normal" if self._current_index < n - 1 else "disabled"
+        )
         values = self._jump_box["values"]
         if values and self._current_index < len(values):
             self._jump_var.set(values[self._current_index])
@@ -420,18 +464,12 @@ class BankViewerApp(tk.Tk):
     # ------------------------------------------------------------------
 
     def _show_placeholder(self, msg):
-        for w in self._bank_info_widgets + self._question_widgets:
-            try:
-                w.destroy()
-            except Exception:
-                pass
-        self._bank_info_widgets = []
-        self._question_widgets = []
-        for tw in (self._bank_text, self._q_text):
-            tw.config(state="normal")
-            tw.delete("1.0", "end")
-            tw.config(state="disabled")
+        self._destroy_widgets(self._bank_info_widgets, self._question_widgets)
+        self._bank_text.config(state="normal")
+        self._bank_text.delete("1.0", "end")
+        self._bank_text.config(state="disabled")
         self._q_text.config(state="normal")
+        self._q_text.delete("1.0", "end")
         self._q_text.insert("end", "\n\n" + msg, "placeholder")
         self._q_text.config(state="disabled")
 
@@ -439,13 +477,7 @@ class BankViewerApp(tk.Tk):
         self._update_nav()
         self._figure_cache.clear()
 
-        # Destroy old question-area embedded widgets
-        for w in self._question_widgets:
-            try:
-                w.destroy()
-            except Exception:
-                pass
-        self._question_widgets = []
+        self._destroy_widgets(self._question_widgets)
 
         tw = self._q_text
         tw.config(state="normal")
@@ -466,33 +498,45 @@ class BankViewerApp(tk.Tk):
             if value is None or value == "" or value == [] or value == {}:
                 tw.insert("end", NONE_TAG + "\n", "none_val")
             elif isinstance(value, list):
-                tw.insert("end", sanitize(", ".join(str(v) for v in value)) + "\n", "bi_val")
+                tw.insert(
+                    "end", sanitize(", ".join(str(v) for v in value)) + "\n", "bi_val"
+                )
             else:
                 tw.insert("end", sanitize(str(value)) + "\n", "bi_val")
 
         tw.insert("end", "BANK INFO\n", "section")
-        field("Title",               bi.get("title"))
-        field("Bank ID",             bi.get("bank_id"))
-        field("Description",         bi.get("description"))
-        field("Date",                get_bi(bi, DATE_KEYS))
-        field("LLM",                 bi.get("LLM"))
-        field("Authors",             bi.get("authors"))
+        field("Title", bi.get("title"))
+        field("Bank ID", bi.get("bank_id"))
+        field("Description", bi.get("description"))
+        field("Date", get_bi(bi, DATE_KEYS))
+        field("LLM", bi.get("LLM"))
+        field("Authors", bi.get("authors"))
         field("Learning Objectives", get_bi(bi, LO_KEYS))
         tw.insert("end", "\n", "divider")
 
-        self._embed_collapsible(tw, "Generation Prompts",
-                                self._build_prompts_content,
-                                get_bi(bi, PROMPTS_KEYS))
+        self._embed_collapsible(
+            tw,
+            "Generation Prompts",
+            self._build_prompts_content,
+            get_bi(bi, PROMPTS_KEYS),
+        )
         gp2 = get_bi(bi, PROMPTS2_KEYS)
         if gp2:
-            self._embed_collapsible(tw, "Generation Prompts 2",
-                                    self._build_prompts_content, gp2)
-        self._embed_collapsible(tw, "Updates",
-                                self._build_updates_content, bi.get("updates"))
-        self._embed_collapsible(tw, "Associated Data",
-                                self._build_assoc_content, get_bi(bi, ASSOC_KEYS))
-        self._embed_collapsible(tw, "Generation Details",
-                                self._build_details_content, get_bi(bi, DETAILS_KEYS))
+            self._embed_collapsible(
+                tw, "Generation Prompts 2", self._build_prompts_content, gp2
+            )
+        self._embed_collapsible(
+            tw, "Updates", self._build_updates_content, bi.get("updates")
+        )
+        self._embed_collapsible(
+            tw, "Associated Data", self._build_assoc_content, get_bi(bi, ASSOC_KEYS)
+        )
+        self._embed_collapsible(
+            tw,
+            "Generation Details",
+            self._build_details_content,
+            get_bi(bi, DETAILS_KEYS),
+        )
 
     def _embed_collapsible(self, tw, label, builder_fn, data):
         count = ""
@@ -501,8 +545,10 @@ class BankViewerApp(tk.Tk):
         elif data is None:
             count = " (none)"
         section = CollapsibleSection(
-            tw, f"{label}{count}",
-            self._section_state, label,
+            tw,
+            f"{label}{count}",
+            self._section_state,
+            label,
             bg="#f4f6fb",
         )
         builder_fn(section, data)
@@ -517,10 +563,16 @@ class BankViewerApp(tk.Tk):
         for item in data:
             if isinstance(item, dict):
                 for k, v in item.items():
-                    section.add_text_row(f"[{k}]", fg="#333399",
-                                         font=("Helvetica", 10, "bold"), wrap=False)
-                    section.add_text_row(str(v) if v is not None else NONE_TAG,
-                                         fg="#222222" if v else "#aaaaaa")
+                    section.add_text_row(
+                        f"[{k}]",
+                        fg="#333399",
+                        font=("Helvetica", 10, "bold"),
+                        wrap=False,
+                    )
+                    section.add_text_row(
+                        str(v) if v is not None else NONE_TAG,
+                        fg="#222222" if v else "#aaaaaa",
+                    )
             else:
                 section.add_text_row(str(item))
 
@@ -534,21 +586,25 @@ class BankViewerApp(tk.Tk):
                     if v is None:
                         section.add_text_row(f"{k}: {NONE_TAG}", fg="#aaaaaa")
                     elif isinstance(v, list):
-                        section.add_text_row(f"{k}:", fg="#555555",
-                                             font=("Helvetica", 10, "bold"))
+                        section.add_text_row(
+                            f"{k}:", fg="#555555", font=("Helvetica", 10, "bold")
+                        )
                         for sub in v:
                             if isinstance(sub, dict):
                                 for sk, sv in sub.items():
                                     section.add_text_row(
                                         f"  [{sk}]  {sv if sv is not None else NONE_TAG}",
-                                        fg="#333333" if sv else "#aaaaaa")
+                                        fg="#333333" if sv else "#aaaaaa",
+                                    )
                             else:
                                 section.add_text_row(f"  {sub}")
                     else:
                         section.add_text_row(f"{k}: {v}", fg="#333333")
             else:
-                section.add_text_row(str(item) if item is not None else NONE_TAG,
-                                     fg="#333333" if item else "#aaaaaa")
+                section.add_text_row(
+                    str(item) if item is not None else NONE_TAG,
+                    fg="#333333" if item else "#aaaaaa",
+                )
 
     def _build_assoc_content(self, section, data):
         if not data:
@@ -560,10 +616,13 @@ class BankViewerApp(tk.Tk):
                     for k, v in item.items():
                         section.add_text_row(
                             f"{k}: {v if v is not None else NONE_TAG}",
-                            fg="#333333" if v else "#aaaaaa")
+                            fg="#333333" if v else "#aaaaaa",
+                        )
                 else:
-                    section.add_text_row(str(item) if item else NONE_TAG,
-                                         fg="#333333" if item else "#aaaaaa")
+                    section.add_text_row(
+                        str(item) if item else NONE_TAG,
+                        fg="#333333" if item else "#aaaaaa",
+                    )
         else:
             section.add_text_row(str(data))
 
@@ -575,7 +634,8 @@ class BankViewerApp(tk.Tk):
             for k, v in data.items():
                 section.add_text_row(
                     f"{k}: {v if v is not None else NONE_TAG}",
-                    fg="#333333" if v else "#aaaaaa")
+                    fg="#333333" if v else "#aaaaaa",
+                )
         else:
             section.add_text_row(str(data))
 
@@ -584,16 +644,18 @@ class BankViewerApp(tk.Tk):
     # ------------------------------------------------------------------
 
     def _render_question(self, tw, q):
-        qtype  = q.get("_type", "unknown")
-        title  = q.get("title", q.get("id", ""))
+        qtype = q.get("_type", "unknown")
+        title = q.get("title", q.get("id", ""))
         points = q.get("points", "")
-        badge  = f"  [{qtype.upper()}  ·  {points}pt]" if points else f"  [{qtype.upper()}]"
+        badge = (
+            f"  [{qtype.upper()}  ·  {points}pt]" if points else f"  [{qtype.upper()}]"
+        )
 
         tw.insert("end", sanitize(title), "title")
         tw.insert("end", badge + "\n", "type_badge")
         tw.insert("end", "\n", "divider")
 
-        qid    = q.get("id", NONE_TAG)
+        qid = q.get("id", NONE_TAG)
         figure = q.get("figure")
         tw.insert("end", "ID: ", "label")
         tw.insert("end", sanitize(str(qid)), "body")
@@ -608,7 +670,7 @@ class BankViewerApp(tk.Tk):
         tw.insert("end", "Question\n", "section")
         text = q.get("text", "")
         if text:
-            self.render_content(tw, text)
+            self._render_content(tw, text)
         else:
             tw.insert("end", NONE_TAG + "\n", "none_val")
         tw.insert("end", "\n", "divider")
@@ -622,9 +684,11 @@ class BankViewerApp(tk.Tk):
             self._render_answer_categorization(tw, q)
         else:
             ans = q.get("answer")
-            tw.insert("end",
-                       sanitize(str(ans)) if ans is not None else NONE_TAG,
-                       "body" if ans is not None else "none_val")
+            tw.insert(
+                "end",
+                sanitize(str(ans)) if ans is not None else NONE_TAG,
+                "body" if ans is not None else "none_val",
+            )
             tw.insert("end", "\n", "body")
 
         tw.insert("end", "\n", "divider")
@@ -634,37 +698,46 @@ class BankViewerApp(tk.Tk):
 
     def _render_answer_numerical(self, tw, q):
         ans = q.get("answer") or {}
-        value          = ans.get("value")
-        margin_type    = ans.get("margin_type")
-        tolerance      = ans.get("tolerance")
+        value = ans.get("value")
+        margin_type = ans.get("margin_type")
+        tolerance = ans.get("tolerance")
         precision_type = ans.get("precision_type")
-        precision      = ans.get("precision")
+        precision = ans.get("precision")
 
         tw.insert("end", "Value: ", "label")
-        tw.insert("end", str(value) if value is not None else NONE_TAG,
-                  "answer_val" if value is not None else "none_val")
+        tw.insert(
+            "end",
+            str(value) if value is not None else NONE_TAG,
+            "answer_val" if value is not None else "none_val",
+        )
 
         if margin_type is not None or tolerance is not None:
-            unit = "%" if margin_type == "percent" else (str(margin_type) if margin_type else "")
+            unit = (
+                "%"
+                if margin_type == "percent"
+                else (str(margin_type) if margin_type else "")
+            )
             tl = tolerance if tolerance is not None else NONE_TAG
             tw.insert("end", f"    (±{tl} {unit})", "answer_tol")
         elif precision_type is not None or precision is not None:
             pt = precision_type if precision_type is not None else NONE_TAG
-            pv = precision      if precision      is not None else NONE_TAG
+            pv = precision if precision is not None else NONE_TAG
             tw.insert("end", f"    (precision: {pv} {pt})", "answer_tol")
         else:
-            tw.insert("end",
-                       f"    margin_type: {NONE_TAG}  tolerance: {NONE_TAG}",
-                       "none_val")
+            tw.insert(
+                "end", f"    margin_type: {NONE_TAG}  tolerance: {NONE_TAG}", "none_val"
+            )
         tw.insert("end", "\n", "body")
 
     def _render_answer_choices(self, tw, q, qtype):
         if qtype == "multiple_answers":
             partial = q.get("partial")
             tw.insert("end", "Partial credit: ", "label")
-            tw.insert("end",
-                       str(partial) if partial is not None else NONE_TAG,
-                       "body" if partial is not None else "none_val")
+            tw.insert(
+                "end",
+                str(partial) if partial is not None else NONE_TAG,
+                "body" if partial is not None else "none_val",
+            )
             tw.insert("end", "\n", "body")
 
         answers = q.get("answers") or []
@@ -674,14 +747,14 @@ class BankViewerApp(tk.Tk):
         for item in answers:
             if not isinstance(item, dict):
                 continue
-            ans     = item.get("answer", item)
-            text    = ans.get("text", NONE_TAG)
+            ans = item.get("answer", item)
+            text = ans.get("text", NONE_TAG)
             correct = ans.get("correct", None)
-            lock    = ans.get("lock")
-            marker  = "✓ " if correct else "  • "
-            tag     = "correct" if correct else "incorrect"
+            lock = ans.get("lock")
+            marker = "✓ " if correct else "  • "
+            tag = "correct" if correct else "incorrect"
             tw.insert("end", f"  {marker}", tag)
-            self.render_content(tw, str(text))
+            self._render_content(tw, str(text))
             if qtype == "multiple_answers" and lock is not None:
                 tw.insert("end", f"  [lock={lock}]", "meta")
             tw.insert("end", "\n", "body")
@@ -694,8 +767,8 @@ class BankViewerApp(tk.Tk):
         for item in categories:
             if not isinstance(item, dict):
                 continue
-            cat     = item.get("category", item)
-            desc    = cat.get("description", NONE_TAG)
+            cat = item.get("category", item)
+            desc = cat.get("description", NONE_TAG)
             answers = cat.get("answers") or []
             tw.insert("end", "  Category: ", "label")
             tw.insert("end", sanitize(str(desc)) + "\n", "body")
@@ -703,52 +776,69 @@ class BankViewerApp(tk.Tk):
                 tw.insert("end", f"    • {sanitize(str(a))}\n", "body")
 
     def _render_feedback(self, tw, feedback):
-        general      = feedback.get("general")
-        on_correct   = feedback.get("on_correct")
+        general = feedback.get("general")
+        on_correct = feedback.get("on_correct")
         on_incorrect = feedback.get("on_incorrect")
 
         if general:
-            self.render_content(tw, general)
+            self._render_content(tw, general)
         else:
             tw.insert("end", NONE_TAG + "\n", "none_val")
 
         tw.insert("end", "\n", "body")
         tw.insert("end", "✓ Correct: ", "label")
-        tw.insert("end", sanitize(on_correct) + "\n" if on_correct else NONE_TAG + "\n",
-                  "body" if on_correct else "none_val")
+        tw.insert(
+            "end",
+            sanitize(on_correct) + "\n" if on_correct else NONE_TAG + "\n",
+            "body" if on_correct else "none_val",
+        )
         tw.insert("end", "✗ Incorrect: ", "label")
-        tw.insert("end", sanitize(on_incorrect) + "\n" if on_incorrect else NONE_TAG + "\n",
-                  "body" if on_incorrect else "none_val")
+        tw.insert(
+            "end",
+            sanitize(on_incorrect) + "\n" if on_incorrect else NONE_TAG + "\n",
+            "body" if on_incorrect else "none_val",
+        )
 
     # ------------------------------------------------------------------
     # Content rendering
     # ------------------------------------------------------------------
 
-    def render_content(self, tw, text):
+    def _render_content(self, tw, text):
         for seg_type, seg_val in parse_content(text):
             if seg_type == "text":
                 tw.insert("end", sanitize(seg_val), "body")
             elif seg_type == "latex":
                 tw.insert("end", sanitize(seg_val), "latex")
             elif seg_type == "table":
-                self.insert_table(tw, seg_val)
+                self._insert_table(tw, seg_val)
 
-    def insert_table(self, tw, rows):
+    def _insert_table(self, tw, rows):
         if not rows:
             return
         container = tk.Frame(tw, bd=1, relief="solid", bg="white")
+        n_cols = max((len(row) for row in rows), default=0)
+        for c_idx in range(n_cols):
+            container.columnconfigure(c_idx, weight=1)
         for r_idx, row in enumerate(rows):
             for c_idx, cell in enumerate(row):
-                bg = "#dce8f5" if r_idx == 0 else ("white" if r_idx % 2 == 0 else "#f7f7f7")
+                bg = (
+                    "#dce8f5"
+                    if r_idx == 0
+                    else ("white" if r_idx % 2 == 0 else "#f7f7f7")
+                )
                 wt = "bold" if r_idx == 0 else "normal"
                 tk.Label(
-                    container, text=sanitize(cell),
+                    container,
+                    text=sanitize(cell),
                     font=("Helvetica", 10, wt),
-                    bg=bg, fg="#222222",
-                    relief="flat", bd=0,
-                    padx=6, pady=3, anchor="w",
+                    bg=bg,
+                    fg="#222222",
+                    relief="flat",
+                    bd=0,
+                    padx=6,
+                    pady=3,
+                    anchor="w",
                 ).grid(row=r_idx, column=c_idx, sticky="nsew", padx=1, pady=1)
-                container.columnconfigure(c_idx, weight=1)
         tw.insert("end", "\n", "body")
         tw.window_create("end", window=container)
         tw.insert("end", "\n", "body")
@@ -799,7 +889,6 @@ class BankViewerApp(tk.Tk):
     # ------------------------------------------------------------------
 
     def _on_close(self):
-        import shutil
         for d in self._tmp_dirs:
             shutil.rmtree(d, ignore_errors=True)
         self.destroy()
@@ -811,8 +900,9 @@ class BankViewerApp(tk.Tk):
 
 if __name__ == "__main__":
     if yaml is None:
-        import sys
-        print("ERROR: PyYAML is not installed. Run:  pip install pyyaml", file=sys.stderr)
+        print(
+            "ERROR: PyYAML is not installed. Run:  pip install pyyaml", file=sys.stderr
+        )
         sys.exit(1)
     app = BankViewerApp()
     app.mainloop()
